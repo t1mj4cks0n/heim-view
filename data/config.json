@@ -1,0 +1,8 @@
+{
+    "server_url": "http://127.0.0.1:5000/log",
+    "interval_seconds": 60,
+    "auto_update": false,
+    "github_repo": "https://raw.githubusercontent.com/t1mj4cks0n/heim-view-client/main",
+    "version": "1.0",
+    "update_check_interval": 3600
+}

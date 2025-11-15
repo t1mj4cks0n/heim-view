@@ -11,18 +11,19 @@ import datetime
 import hashlib
 
 # --- Constants ---
-BASE_DIR = "/opt/heim-view"
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-LOG_FILE = os.path.join(BASE_DIR, "logs", "client.log")
-UPDATE_LOG_FILE = os.path.join(BASE_DIR, "logs", "update.log")
-CACHE_DIR = os.path.join(BASE_DIR, "cache")
+current_path = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = current_path
+CONFIG_FILE = os.path.join(BASE_DIR, "data", "config.json")
+LOG_FILE = os.path.join(BASE_DIR, "data", "logs", "client.log")
+UPDATE_LOG_FILE = os.path.join(BASE_DIR, "data", "logs", "update.log")
+CACHE_DIR = os.path.join(BASE_DIR, "data", "cache")
 CACHE_FILE = os.path.join(CACHE_DIR, "public_ip_cache.json")
-UPDATE_SCRIPT = "/usr/local/bin/update_heim_view.sh"
+                          
 GITHUB_REPO = "https://raw.githubusercontent.com/t1mj4cks0n/heim-view-client/main"
 
 # --- Default Config ---
 DEFAULT_CONFIG = {
-    "server_url": "http://localhost:5000/api/log",
+    "server_url": "http://127.0.0.1:5000/log",
     "interval_seconds": 30,
     "auto_update": False,
     "github_repo": GITHUB_REPO,
@@ -61,30 +62,6 @@ def ensure_cache_exists():
                 json.dump({'ip': None, 'timestamp': 0}, f)
     except IOError as e:
         logging.error(f"Error creating cache: {e}")
-
-def check_for_updates(config):
-    """Check GitHub for updates and trigger update script if needed."""
-    if not config.get("auto_update", False):
-        return False
-    try:
-        last_check = getattr(check_for_updates, "last_check", 0)
-        if time.time() - last_check < config.get("update_check_interval", 3600):
-            return False
-        check_for_updates.last_check = time.time()
-        logging.info("Checking for updates...")
-        response = requests.get(f"{config['github_repo']}/heim-view.py", timeout=10)
-        response.raise_for_status()
-        new_script = response.text
-        new_hash = hashlib.sha256(new_script.encode()).hexdigest()
-        with open(__file__, "r") as f:
-            current_hash = hashlib.sha256(f.read().encode()).hexdigest()
-        if new_hash != current_hash:
-            logging.info("Update available. Triggering update script...")
-            subprocess.Popen([UPDATE_SCRIPT, config["github_repo"]], stdout=open(UPDATE_LOG_FILE, "a"), stderr=subprocess.STDOUT)
-            return True
-    except Exception as e:
-        logging.error(f"Update check failed: {e}")
-    return False
 
 # --- Stat Collection Functions ---
 def get_hostname():
