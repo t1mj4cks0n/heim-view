@@ -11,13 +11,14 @@ import datetime
 import hashlib
 
 # --- Constants ---
-BASE_DIR = "/opt/monitor_client"
+BASE_DIR = "/opt/heim-view"
 CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-LOG_FILE = os.path.join(BASE_DIR, "logs", "monitor_client.log")
+LOG_FILE = os.path.join(BASE_DIR, "logs", "heim-view.log")
+UPDATE_LOG_FILE = os.path.join(BASE_DIR, "logs", "update.log")
 CACHE_DIR = os.path.join(BASE_DIR, "cache")
 CACHE_FILE = os.path.join(CACHE_DIR, "public_ip_cache.json")
-UPDATE_SCRIPT = "/usr/local/bin/update_monitor_client.sh"
-GITHUB_REPO = "https://raw.githubusercontent.com/yourusername/monitor_client/main"
+UPDATE_SCRIPT = "/usr/local/bin/update_heim_view.sh"
+GITHUB_REPO = "https://raw.githubusercontent.com/t1mj4cks0n/heim-view/main"
 
 # --- Default Config ---
 DEFAULT_CONFIG = {
@@ -30,7 +31,10 @@ DEFAULT_CONFIG = {
 
 # --- Setup ---
 os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
+os.makedirs(os.path.dirname(UPDATE_LOG_FILE), exist_ok=True)
 os.makedirs(CACHE_DIR, exist_ok=True)
+
+# Set up logging
 logging.basicConfig(
     filename=LOG_FILE,
     level=logging.INFO,
@@ -89,7 +93,7 @@ def check_for_updates(config):
     try:
         logging.info("Checking for updates...")
         response = requests.get(
-            f"{config['github_repo']}/monitor_client.py",
+            f"{config['github_repo']}/heim-view.py",
             timeout=10
         )
         response.raise_for_status()
@@ -101,8 +105,8 @@ def check_for_updates(config):
             logging.info("Update available. Triggering update script...")
             subprocess.Popen(
                 [UPDATE_SCRIPT, config["github_repo"]],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+                stdout=open(UPDATE_LOG_FILE, "a"),
+                stderr=subprocess.STDOUT
             )
             return True
     except Exception as e:
@@ -314,7 +318,7 @@ def get_stats():
 if __name__ == "__main__":
     config = load_config()
     ensure_cache_exists()
-    logging.info(f"Starting monitor_client v{config.get('version', '1.0')}")
+    logging.info(f"Starting heim-view v{config.get('version', '1.0')}")
     while True:
         if config.get("auto_update", False):
             check_for_updates(config)
