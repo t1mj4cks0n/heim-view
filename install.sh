@@ -11,16 +11,39 @@ mkdir -p data/cache
 
 # edit config file using user input
 CONFIG_FILE="data/config.json"
+
+# Function to extract values from config using grep/sed
+extract_config_value() {
+    local key_pattern="$1"
+    local default="$2"
+    local file="$CONFIG_FILE"
+
+    if [ ! -f "$file" ]; then
+        echo "$default"
+        return
+    fi
+
+    # Try to extract the value
+    local value
+    value=$(grep -oP "$key_pattern" "$file" 2>/dev/null | head -1)
+
+    if [ -z "$value" ]; then
+        echo "$default"
+    else
+        echo "$value"
+    fi
+}
+
 if [ -f "$CONFIG_FILE" ]; then
     echo "Existing config.json found. Creating backup..."
     cp "$CONFIG_FILE" "$CONFIG_FILE.bak"
 
-    # Load existing values as defaults
-    SERVER_IP=$(jq -r '.server_url | capture("http://(?<ip>[^:]+):(?<port>\\d+)/log").ip' "$CONFIG_FILE" 2>/dev/null || echo "127.0.0.1")
-    SERVER_PORT=$(jq -r '.server_url | capture("http://[^:]+:(?<port>\\d+)/log").port' "$CONFIG_FILE" 2>/dev/null || echo "5000")
-    INTERVAL_SECONDS=$(jq -r '.interval_seconds // 60' "$CONFIG_FILE")
-    AUTO_UPDATE=$(jq -r '.auto_update // false' "$CONFIG_FILE")
-    PUBLIC_IP_INTERVAL=$(jq -r '.public_ip_update_check_interval // 3600' "$CONFIG_FILE")
+    # Load existing values as defaults using grep patterns
+    SERVER_IP=$(extract_config_value '"server_url":\s*"http://\K[^:]+' "127.0.0.1")
+    SERVER_PORT=$(extract_config_value '"server_url":\s*"http://[^:]+:\K[^/]+' "5000")
+    INTERVAL_SECONDS=$(extract_config_value '"interval_seconds":\s*\K[^,}]+' "60")
+    AUTO_UPDATE=$(extract_config_value '"auto_update":\s*\K[^,}]+' "false")
+    PUBLIC_IP_INTERVAL=$(extract_config_value '"public_ip_update_check_interval":\s*\K[^,}]+' "3600")
 
     read -p "Overwrite existing config? (y/N): " CONFIRM
     if [[ "$CONFIRM" != [yY] ]]; then
@@ -107,14 +130,14 @@ chmod 664 "$SCRIPT_DIR/data/logs/service-error.log"
 
 # Enable and start service
 echo "Reloading systemd daemon..."
-systemctl daemon-reload
+sudo systemctl daemon-reload
 echo "Enabling heim-view service..."
-systemctl enable heim-view.service
+sudo systemctl enable heim-view.service
 echo "Starting heim-view service..."
-systemctl start heim-view.service
+sudo systemctl start heim-view.service
 
 echo "Installation complete!"
-echo "Service status: $(systemctl is-active heim-view.service)"
+echo "Service status: $(systemctl is-active heim-view.service 2>/dev/null || echo 'unknown')"
 echo "Application logs: $SCRIPT_DIR/data/logs/client.log and $SCRIPT_DIR/data/logs/update.log"
 echo "Service logs: $SCRIPT_DIR/data/logs/service.log and $SCRIPT_DIR/data/logs/service-error.log"
 echo "You can also check system logs with: journalctl -u heim-view.service -f"
