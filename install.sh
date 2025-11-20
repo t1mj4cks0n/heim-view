@@ -15,7 +15,7 @@ cd "$SCRIPT_DIR"
 # Check for main Python script
 PYTHON_SCRIPT=""
 if [ -f "heim_view.py" ]; then
-    PYTHON_SCRIPT="heim-view.py"
+    PYTHON_SCRIPT="heim_view.py"
 else
     # Try to find any Python file that might be the main script
     PY_FILES=(*.py)
@@ -123,8 +123,8 @@ EOL
 
 echo "Configuration file updated at $CONFIG_FILE"
 
-echo "Making heim-view.py executable..."
-chmod +770 heim-view.py
+echo "Making $PYTHON_SCRIPT executable..."
+chmod +770 $PYTHON_SCRIPT
 
 # Service installation
 echo "Installing systemd service..."
@@ -143,7 +143,7 @@ After=network.target
 [Service]
 User=$USERNAME
 WorkingDirectory=$SCRIPT_DIR
-ExecStart=$SCRIPT_DIR/heim_view.py
+ExecStart=$SCRIPT_DIR/$PYTHON_SCRIPT
 Restart=always
 RestartSec=5s
 
